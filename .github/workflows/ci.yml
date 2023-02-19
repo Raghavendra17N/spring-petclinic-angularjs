@@ -2,9 +2,9 @@ name: Java CI with Maven
 
 on:
   push:
-    branches: [ master ]
+    branches: [ experimental ]
   pull_request:
-    branches: [ master ]
+    branches: [ experimental ]
 
 jobs:
   build:
@@ -12,8 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
        IMAGE_NAME: springboot-petclinic-actions
-       PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-       TAGS: v1
+       TAGS: experimental
 
     steps:
     - uses: actions/checkout@v2
@@ -28,25 +27,30 @@ jobs:
       run: chmod +x mvnw
     - name: Build with Maven Wrapper
       run: ./mvnw clean install
-    - name: GCP SKD setup  
-      uses: google-github-actions/setup-gcloud@master
-      with:
-              project_id: ${{ secrets.GCP_PROJECT_ID }}
-              service_account_key: ${{ secrets.GCP_SA_KEY }}
-              export_default_credentials: true
+    # - name: GCP SKD setup  
+    #   uses: google-github-actions/setup-gcloud@master
+    #   with:
+    #           project_id: ${{ secrets.GCP_PROJECT_ID }}
+    #           service_account_key: ${{ secrets.GCP_SA_KEY }}
+    #           export_default_credentials: true
     - name: change to server directory and build
       run: |-
         cd spring-petclinic-server ; 
         mvn clean package docker:build
     
-    - name: Docker GCP credential helper in cmd
-      run: |
-         gcloud auth configure-docker -q
+    # - name: Docker GCP credential helper in cmd
+    #   run: |
+    #      gcloud auth configure-docker -q
+    - name: Log in to Docker Hub
+      uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+      with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASSWD }}
 
-    - name: tagging the image to push to GCR
+    - name: tagging the image to push to docker Hub
       run: |-
-        docker tag $IMAGE_NAME gcr.io/$PROJECT_ID/$IMAGE_NAME:$TAGS
-     
-    - name: Push image to GCR
+        docker tag $IMAGE_NAME raghava99/$IMAGE_NAME:$TAGS
+
+    - name: Push image to docker hub
       run: |-
-          docker push gcr.io/$PROJECT_ID/$IMAGE_NAME:$TAGS
+          docker push raghava99/$IMAGE_NAME:$TAGS
